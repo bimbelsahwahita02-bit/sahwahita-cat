@@ -98,8 +98,19 @@ table.qtb{width:auto;max-width:100%;border-collapse:collapse;font-size:inherit;f
  .res{gap:.4em}.res>div{padding:.5em .3em}
  .ft button{flex:1}
 }
+/* penyebab ukuran huruf opsi 'telat': transition .2s pada tombol ikut menganimasi font-size */
+.op,.op i,.op span{transition:background-color .15s,border-color .15s,box-shadow .15s}
+/* tombol layar penuh */
+.fs{padding:.35em .6em;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);box-shadow:none;line-height:0;display:inline-grid;place-items:center;font-size:.9em}
+#fsb{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;font-size:16px;padding:.55em .7em;background:rgba(10,10,10,.75)}
+#test:not([hidden])~#fsb{display:none}
+/* kotak navigasi & tombol lebih ringkas */
+.nv{max-height:24%}.nv button{font-size:.62em;width:2.1em;height:1.6em}.grp{padding:.3em .5em}.grp small{font-size:.7em}.nv .grp>div{gap:.2em}
+.ft button{padding:.4em 1.1em;font-size:.8em;min-width:6em}.bar{padding:.25em .7em}.bar img{height:2em;width:2em}.bar b{font-size:.85em}.tm{font-size:1.25em}
+@media(min-width:701px) and (max-height:820px){.nv button{width:2em;height:1.5em}.nv{max-height:24%}}
+@media(max-width:700px){.nv{max-height:26%}.nv button{font-size:.72em;width:2.1em;height:1.55em}.tabs2 button{font-size:.75em;padding:.4em .2em}}
 </style></head><body>
-<div id="app"></div><div id="test" hidden></div>
+<div id="app"></div><div id="test" hidden></div><button id="fsb" class="fs" onclick="toggleFS()" title="Layar penuh" hidden><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -167,20 +178,25 @@ async function startT(){const nm=$('#nm').value.trim(),tk=$('#tk').value.trim();
  T={s,nm,qs:s.qs,a:{},i:0,end:Date.now()+s.dur*60000,done:false,busy:false};
  $('#test').hidden=false;A.hidden=true;paint();tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
 const fmt=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return[Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
+const FSE=document.documentElement,fsOK=!!(FSE.requestFullscreen||FSE.webkitRequestFullscreen),fsOn=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function toggleFS(){try{if(fsOn())(document.exitFullscreen||document.webkitExitFullscreen).call(document);else(FSE.requestFullscreen||FSE.webkitRequestFullscreen).call(FSE)}catch(e){}}
+if(fsOK)$('#fsb').hidden=false;
+["fullscreenchange","webkitfullscreenchange"].forEach(e=>document.addEventListener(e,()=>setTimeout(()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()},150)));
 const subOf=i=>T.s.type!=='to'?T.s.type:i<30?'twk':i<65?'tiu':'tkp';
 function fitQ(){const a=$('#test .qp'),b=$('#test .qo');if(!a||!b)return;
  if(innerHeight<=520){a.style.fontSize=b.style.fontSize='13px';return}
  const fit=el=>{const ok=()=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
-  let lo=8,hi=innerWidth<=700?17:24;while(lo<hi){const m=Math.ceil((lo+hi)/2);el.style.fontSize=m+'px';ok()?lo=m:hi=m-1}el.style.fontSize=lo+'px'};
+  let lo=7,hi=innerWidth<=700?15:18;while(lo<hi){const m=Math.ceil((lo+hi)/2);el.style.fontSize=m+'px';ok()?lo=m:hi=m-1}el.style.fontSize=lo+'px'};
  fit(a);fit(b)}
-document.fonts&&document.fonts.ready.then(()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
+document.fonts&&document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
+addEventListener('orientationchange',()=>setTimeout(()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()},250));
 addEventListener('resize',()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
-function paint(){paint0();fitQ()}
+function paint(){paint0();fitQ();requestAnimationFrame(fitQ);setTimeout(fitQ,200);setTimeout(fitQ,800)}
 function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
  const groups=s.type==='to'?[['TWK',0,30],['TIU',30,65],['TKP',65,110]]:[[NM[s.type],0,qs.length]];
  const gi=n=>Math.max(0,groups.findIndex(g=>n>=g[1]&&n<g[2]));if(T.tab==null)T.tab=gi(i);
  const cnt=g=>{let c=0;for(let n=g[1];n<Math.min(g[2],qs.length);n++)if(a[n])c++;return c+'/'+(Math.min(g[2],qs.length)-g[1])};
- $('#test').innerHTML=`<div class="stage"><div class="bar"><img src="${BANNER}" alt=""><b>${esc(T.nm)} · ${esc(s.name)}</b><span class="lb">SOAL ${i+1} / ${qs.length} · ${NM[subOf(i)]}</span><span class="tm" id="tm">${fmt(T.end-Date.now())}</span></div>
+ $('#test').innerHTML=`<div class="stage"><div class="bar"><img src="${BANNER}" alt=""><b>${esc(T.nm)} · ${esc(s.name)}</b><span class="lb">SOAL ${i+1} / ${qs.length} · ${NM[subOf(i)]}</span><span class="tm" id="tm">${fmt(T.end-Date.now())}</span>${fsOK?`<button class="fs" onclick="toggleFS()" title="Layar penuh / keluar layar penuh"><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`:''}</div>
  <div class="qa2"><div class="qp"><div class="qt">${rich(q.q)}</div></div>
  <div class="qo">${L.split('').filter(c=>q.o[c]!=null).map(c=>`<button class="op ${a[i]===c?'sel':''}" onclick="pick('${c}')"><i>${c}</i><span>${rich(q.o[c])}</span></button>`).join('')}</div></div>
  <div class="ft"><button class="bk" onclick="go(${i-1})" ${i?'':'disabled'}>Back</button><button onclick="go(${i+1})" ${i<qs.length-1?'':'disabled'}>Next</button><button class="alt" onclick="if(confirm('Selesaikan ujian sekarang?'))finish()">Selesai</button></div>
