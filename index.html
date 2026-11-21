@@ -38,7 +38,7 @@ html{-webkit-text-size-adjust:100%}
 #test{position:fixed;inset:0;background:#050814;z-index:9;overflow:hidden}
 .stage{width:100%;height:100%;display:flex;flex-direction:column;gap:.5em;background:linear-gradient(135deg,#0b2260 0%,#050814 45%,#000 62%,#b8901f 100%);
  padding:max(10px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));
- font-size:clamp(14px,calc(10px + .45vw + .45vh),22px)}
+ font-size:clamp(13px,calc(9px + .3vw + .3vh),19px)}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:.6em;flex-wrap:wrap;background:var(--card);border-radius:12px;padding:.35em .8em;border:1px solid rgba(255,255,255,.1)}
 .bar img{height:2.4em;width:2.4em;object-fit:contain}.bar .lb{font-weight:600;font-size:.85em;color:var(--g);white-space:nowrap}
 .bar b{flex:1 1 11em;min-width:0;font-size:.95em;font-weight:700}
@@ -83,7 +83,7 @@ table.qtb{width:auto;max-width:100%;border-collapse:collapse;font-size:inherit;f
  .qa2{flex-direction:column}.qp{flex:0 1 auto;max-height:40%}.qo{flex:1 1 0}
 }
 @media(max-width:700px){
- .stage{font-size:13px}.bar{flex-wrap:nowrap}.bar b{flex:1 1 0;flex-basis:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .lb{font-size:.7em}.tm{font-size:1.2em}.tabs2{display:flex}.grp:not(.on){display:none}.grp:nth-child(n){flex:1}
+ .stage{font-size:12px}.bar{flex-wrap:nowrap}.bar b{flex:1 1 0;flex-basis:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .lb{font-size:.7em}.tm{font-size:1.2em}.tabs2{display:flex}.grp:not(.on){display:none}.grp:nth-child(n){flex:1}
  body{font-size:14px}
  .wrap{padding:14px}
  .card{padding:14px;border-radius:14px}
@@ -168,7 +168,15 @@ async function startT(){const nm=$('#nm').value.trim(),tk=$('#tk').value.trim();
  $('#test').hidden=false;A.hidden=true;paint();tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
 const fmt=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return[Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 const subOf=i=>T.s.type!=='to'?T.s.type:i<30?'twk':i<65?'tiu':'tkp';
-function paint(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
+function fitQ(){const a=$('#test .qp'),b=$('#test .qo');if(!a||!b)return;
+ if(innerHeight<=520){a.style.fontSize=b.style.fontSize='13px';return}
+ const fit=el=>{const ok=()=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
+  let lo=8,hi=innerWidth<=700?17:24;while(lo<hi){const m=Math.ceil((lo+hi)/2);el.style.fontSize=m+'px';ok()?lo=m:hi=m-1}el.style.fontSize=lo+'px'};
+ fit(a);fit(b)}
+document.fonts&&document.fonts.ready.then(()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
+addEventListener('resize',()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
+function paint(){paint0();fitQ()}
+function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
  const groups=s.type==='to'?[['TWK',0,30],['TIU',30,65],['TKP',65,110]]:[[NM[s.type],0,qs.length]];
  const gi=n=>Math.max(0,groups.findIndex(g=>n>=g[1]&&n<g[2]));if(T.tab==null)T.tab=gi(i);
  const cnt=g=>{let c=0;for(let n=g[1];n<Math.min(g[2],qs.length);n++)if(a[n])c++;return c+'/'+(Math.min(g[2],qs.length)-g[1])};
