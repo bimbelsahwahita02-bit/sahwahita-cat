@@ -27,33 +27,65 @@ button.s{background:transparent;color:var(--g);border:1px solid var(--g)}button.
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:9px 8px;border-bottom:1px solid var(--ln);text-align:left}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .pass{color:var(--g)}.fail{color:#ff8a9a}
-/* test */
-#test{position:fixed;inset:0;background:#050a14;display:flex;align-items:center;justify-content:center;z-index:9}
-.stage{width:min(100vw,177.78vh);aspect-ratio:16/9;background:linear-gradient(160deg,#0e1b36,#0a1224);display:flex;flex-direction:column;padding:1.6vmin 2.4vmin;font-size:clamp(11px,1.9vmin,20px)}
-.bar{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.tm{font:800 2.6vmin Poppins;color:var(--g);text-shadow:0 0 12px #2af59888}
-.qa{flex:1;overflow:auto;padding:1vmin 0}
-.qt{font-size:2.1vmin;font-weight:400;line-height:1.5;margin-bottom:1.2vmin;white-space:pre-wrap}
-.op{display:flex;gap:1.2vmin;align-items:center;width:100%;text-align:left;margin:.7vmin 0;padding:1vmin 1.4vmin;background:#101d38;color:var(--tx);border:1px solid var(--ln);font-weight:300;font-size:1.9vmin}
-.op i{font:800 normal 2vmin Poppins;color:var(--g);min-width:2.4vmin}
+/* ===== responsif: HP, tablet, laptop ===== */
+html{-webkit-text-size-adjust:100%}
+.card{overflow-x:auto}
+@media(min-width:1400px){.wrap{max-width:1280px}}
+/* layar ujian: memenuhi layar apa pun, ukuran huruf menyesuaikan perangkat */
+#test{position:fixed;inset:0;background:#050a14;z-index:9;overflow:hidden}
+.stage{width:100%;height:100%;display:flex;flex-direction:column;gap:.5em;background:linear-gradient(160deg,#0e1b36,#0a1224);
+ padding:max(10px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));
+ font-size:clamp(14px,calc(10px + .45vw + .45vh),22px)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:.6em;flex-wrap:wrap}
+.bar b{flex:1 1 11em;min-width:0;font-size:.95em;font-weight:700}
+.tm{font:800 1.5em Poppins;color:var(--g);text-shadow:0 0 12px #2af59888}
+.qa{flex:1;min-height:0;overflow:auto;padding:.4em 0;-webkit-overflow-scrolling:touch}
+.qt{font-size:1.1em;font-weight:400;line-height:1.55;margin-bottom:.8em;white-space:pre-wrap}
+.op{display:flex;gap:.8em;align-items:center;width:100%;text-align:left;margin:.45em 0;padding:.7em .9em;background:#101d38;color:var(--tx);border:1px solid var(--ln);font-weight:300;font-size:1em;line-height:1.4}
+.op i{font:800 normal 1.05em Poppins;color:var(--g);min-width:1.4em}
 .op.sel{background:#2b2a12;border-color:var(--y);box-shadow:0 0 14px var(--y),inset 0 0 12px #fff59d44;color:var(--y)}.op.sel i{color:var(--y)}
-.nv{display:flex;gap:2vmin;flex-wrap:wrap;margin-top:.6vmin}
-.grp{flex:1;min-width:30%;border:1px solid var(--ln);border-radius:10px;padding:.6vmin 1vmin;background:#0c1730}
-.grp small{color:var(--g);font-weight:700;font-size:1.5vmin}.grp div{display:flex;flex-wrap:wrap;gap:.3vmin}
-.nv button{padding:0;width:3.1vmin;height:2.5vmin;font-size:1.3vmin;background:#14264a;color:var(--tx);border-radius:5px;font-weight:400}
+.nv{display:flex;gap:.7em;flex-wrap:wrap;max-height:32%;overflow:auto}
+.grp{flex:1;min-width:30%;border:1px solid var(--ln);border-radius:10px;padding:.4em .6em;background:#0c1730}
+.grp small{color:var(--g);font-weight:700;font-size:.8em}.grp div{display:flex;flex-wrap:wrap;gap:.25em}
+.nv button{padding:0;width:2.3em;height:1.9em;font-size:.8em;background:#14264a;color:var(--tx);border-radius:6px;font-weight:400}
 .nv button.dn{background:#173d3a;color:var(--g)}.nv button.cur{outline:2px solid var(--y)}
-.ft{display:flex;justify-content:space-between;margin:.8vmin 0}
+.ft{display:flex;justify-content:space-between;gap:.6em}.ft button{min-width:7em}
 .big{font:800 40px Poppins;color:var(--g);text-shadow:0 0 20px #2af59888}
-.res{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4vmin;margin:1vmin 0}.res>div{background:#0c1730;border:1px solid var(--ln);border-radius:12px;padding:1.2vmin;text-align:center}
+.res{display:grid;grid-template-columns:repeat(3,1fr);gap:.7em;margin:.6em 0}.res>div{background:#0c1730;border:1px solid var(--ln);border-radius:12px;padding:.7em;text-align:center}
 /* gambar soal */
-.qt img{display:block;max-width:100%;max-height:32vmin;margin:1vmin 0;border-radius:8px;background:#fff;object-fit:contain}
-.op img,.card img{max-width:100%;max-height:14vmin;border-radius:6px;background:#fff;vertical-align:middle}
+.qt img{display:block;max-width:100%;max-height:40vh;margin:.6em 0;border-radius:8px;background:#fff;object-fit:contain}
+.op img,.card img{max-width:100%;max-height:18vh;border-radius:6px;background:#fff;vertical-align:middle}
 /* tabel soal */
-.tw{display:block;max-width:100%;overflow-x:auto;margin:1vmin 0;white-space:normal}
+.tw{display:block;max-width:100%;overflow-x:auto;margin:.6em 0;white-space:normal}
 table.qtb{width:auto;max-width:100%;border-collapse:collapse;font-size:inherit;font-weight:400;background:#0c1730;border:1px solid var(--ln);border-radius:8px}
-.qtb th,.qtb td{border:1px solid var(--ln);padding:.7vmin 1.4vmin;text-align:center;font-weight:400;white-space:nowrap;line-height:1.3}
+.qtb th,.qtb td{border:1px solid var(--ln);padding:.4em .8em;text-align:center;font-weight:400;white-space:nowrap;line-height:1.3}
 .qtb th{background:#14264a;color:var(--g);font-weight:700;text-align:left}
 .card .tw{margin:6px 0}.card .qtb th,.card .qtb td{padding:5px 10px}
+/* layar pendek (HP mendatar): seluruh halaman ujian bisa digulir */
+@media(max-height:520px){
+ .stage{overflow-y:auto;-webkit-overflow-scrolling:touch}
+ .qa{flex:none;overflow:visible}
+ .nv{max-height:none;overflow:visible}
+ .bar{position:sticky;top:0;z-index:2;background:#0e1b36;padding:.3em 0}
+}
+/* laptop dengan layar tidak terlalu tinggi: tombol nomor lebih ringkas */
+@media(min-width:701px) and (max-height:820px){.nv button{width:2em;height:1.55em}.nv{max-height:28%}}
+/* HP / layar sempit */
+@media(max-width:700px){
+ body{font-size:14px}
+ .wrap{padding:14px}
+ .card{padding:14px;border-radius:14px}
+ input,select{font-size:16px}
+ button{padding:10px 14px}
+ .top h2{font-size:18px}
+ .tabs{gap:6px}.tabs button{padding:9px 12px;font-size:13px}
+ table{font-size:12px}td,th{padding:8px 6px}
+ .cover{min-height:auto;padding-top:10px}
+ .grp{min-width:100%}.nv{max-height:34%}
+ .big{font-size:30px}.res .big{font-size:26px!important}
+ .res{gap:.4em}.res>div{padding:.5em .3em}
+ .ft button{flex:1}
+}
 </style></head><body>
 <div id="app"></div><div id="test" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -142,7 +174,7 @@ async function finish(){if(!T||T.busy||T.done)return;T.busy=true;clearInterval(t
  <h2 class="${ok?'pass':'fail'}">${ok?'Lulus (Selamat Anda Lulus)':'Belum Lulus (Silahkan dicoba lagi sampai lulus)'}</h2>
  <div><button onclick="review()">Lihat Jawaban Benar dan Pembahasan</button> <button class="s" onclick="closeT()">Kembali</button></div></div></div>`;T.rh=$('#test').innerHTML}
 function review(){const{qs,a,keys}=T,bst=(k,i)=>subOf(i)==='tkp'?Object.keys(qs[i].o).sort((x,y)=>((k.p||{})[y]||0)-((k.p||{})[x]||0))[0]:k.k;
- $('#test').innerHTML=`<div class="stage"><div class="bar"><b>Jawaban Benar dan Pembahasan</b><button class="s" onclick="$('#test').innerHTML=T.rh">◀ Kembali ke skor</button></div><div class="qa">${qs.map((q,i)=>{const k=keys[i]||{},b=bst(k,i),u=a[i],t=subOf(i)==='tkp';return`<div class="card" style="margin:1vmin 0"><div class="qt"><b style="color:var(--g)">${NM[subOf(i)]} · No. ${i+1}</b><br>${rich(q.q)}</div>${Object.keys(q.o).map(c=>`<div style="padding:.5vmin 1vmin;margin:.3vmin 0;border-radius:8px;border:1px solid ${c===b?'var(--g)':c===u?'#ff5d73':'var(--ln)'};${c===b?'background:#103a2e;':c===u?'background:#3a1420;':''}"><b>${c}.</b> ${rich(q.o[c])}${t&&(k.p||{})[c]?` <small>(${k.p[c]} poin)</small>`:''}${c===u?' <small>← jawaban Anda</small>':''}${c===b?' <small class="pass">✔ jawaban terbaik/benar</small>':''}</div>`).join('')}<div style="margin-top:.8vmin;color:var(--mu)"><b>Jawaban Anda:</b> ${u||'Tidak dijawab'} · <b>Kunci:</b> ${b||'-'}<br><b>Pembahasan:</b> ${esc(k.e)||'Belum ada pembahasan pada file soal.'}</div></div>`}).join('')}</div></div>`}
+ $('#test').innerHTML=`<div class="stage"><div class="bar"><b>Jawaban Benar dan Pembahasan</b><button class="s" onclick="$('#test').innerHTML=T.rh">◀ Kembali ke skor</button></div><div class="qa">${qs.map((q,i)=>{const k=keys[i]||{},b=bst(k,i),u=a[i],t=subOf(i)==='tkp';return`<div class="card" style="margin:.6em 0"><div class="qt"><b style="color:var(--g)">${NM[subOf(i)]} · No. ${i+1}</b><br>${rich(q.q)}</div>${Object.keys(q.o).map(c=>`<div style="padding:.4em .7em;margin:.3em 0;border-radius:8px;border:1px solid ${c===b?'var(--g)':c===u?'#ff5d73':'var(--ln)'};${c===b?'background:#103a2e;':c===u?'background:#3a1420;':''}"><b>${c}.</b> ${rich(q.o[c])}${t&&(k.p||{})[c]?` <small>(${k.p[c]} poin)</small>`:''}${c===u?' <small>← jawaban Anda</small>':''}${c===b?' <small class="pass">✔ jawaban terbaik/benar</small>':''}</div>`).join('')}<div style="margin-top:.6em;color:var(--mu)"><b>Jawaban Anda:</b> ${u||'Tidak dijawab'} · <b>Kunci:</b> ${b||'-'}<br><b>Pembahasan:</b> ${esc(k.e)||'Belum ada pembahasan pada file soal.'}</div></div>`}).join('')}</div></div>`}
 function closeT(){$('#test').hidden=true;A.hidden=false;T=null;home()}
 
 /* ---------- admin ---------- */
