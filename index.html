@@ -83,9 +83,10 @@ function rich(s){s=String(s??'');let out='',last=0,m;TBL_RE.lastIndex=0;
   let rows=[];try{rows=JSON.parse(decodeURIComponent(m[1]))}catch(e){}
   out+=tblHtml(rows);last=TBL_RE.lastIndex}
  return out+textBlock(s.slice(last))}
-let me=null,tab='peserta',pend={},T=null,tick=null,edS=null,vw=null;
+let me=null,tab='peserta',pend={},T=null,tick=null,edS=null,vw=null,PL={};
 const pad=n=>String(n).padStart(2,'0'),ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
 const fD=d=>new Date(d).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),fT=d=>new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',hour12:false}).replace(':','.');
+const dt=d=>new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
 const schedTxt=x=>x.start_at?`${fD(x.start_at)}<br><small>pukul ${fT(x.start_at)}${x.end_at?' – '+fT(x.end_at):''}</small>`:'<small>Kapan saja</small>';
 const schedSt=x=>{if(!x.aktif)return'Nonaktif';if(!x.start_at)return'<span class=pass>Aktif</span>';const n=Date.now(),a=new Date(x.start_at).getTime(),b=x.end_at?new Date(x.end_at).getTime():0;
  return n<a?'<span style="color:var(--y)">Belum mulai</span>':(b&&n>b)?'<span style="color:var(--mu)">Selesai</span>':'<span class=pass>Berlangsung</span>'};
@@ -151,27 +152,31 @@ async function admin(){A.hidden=false;A.innerHTML=shell()+'<div class="card">Mem
  if(tab==='peserta'){const{data:u}=await sb.from('profiles').select('*').eq('role','peserta').order('name');
   h+=`<div class="card"><b>Daftarkan peserta</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:10px"><div><label>Nama</label><input id="pn"></div><div><label>User (huruf kecil/angka)</label><input id="pu"></div><div><label>Password (min. 6)</label><input id="pp"></div></div><div class="err" id="e"></div><button onclick="addU()">Tambah</button></div>
   <div class="card"><table><tr><th>Nama</th><th>User</th><th></th></tr>${(u||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.username)}</td><td><button class="s" onclick="resetU('${x.id}')">Reset password</button> <button class="d" onclick="delU('${x.id}')">Hapus</button></td></tr>`).join('')||'<tr><td colspan=3>Belum ada peserta.</td></tr>'}</table></div>`}
- else if(tab==='kumpulan'){const[r1,r2,r3]=await Promise.all([sb.from('packages').select('type,questions'),sb.from('package_keys').select('type,keys'),sb.from('sessions').select('type')]);
-  const P={},K={};(r1.data||[]).forEach(x=>P[x.type]=x.questions||[]);(r2.data||[]).forEach(x=>K[x.type]=x.keys||[]);
-  const used=t=>(r3.data||[]).filter(x=>x.type===t).length;
-  h+=`<div class="card" style="overflow:auto"><b>Kumpulan paket soal</b><p>Ringkasan semua paket soal yang sudah tersimpan. Untuk mengunggah atau mengganti paket, pilih menu paketnya.</p>
-  <table><tr><th>Paket</th><th>Soal</th><th>Target</th><th>Status</th><th>Dipakai sesi</th><th></th></tr>${Object.keys(EXP).map(t=>{const n=(P[t]||[]).length;
-   return`<tr><td><b>${NM[t]}</b></td><td>${n}</td><td>${EXP[t]}</td><td class="${n>=EXP[t]?'pass':'fail'}">${n===0?'Kosong':n>=EXP[t]?'Lengkap':'Belum lengkap'}</td><td>${used(t)} sesi</td>
-   <td style="white-space:nowrap">${n?`<button class="s" onclick="vw=vw==='${t}'?null:'${t}';admin()">${vw===t?'Tutup':'Lihat soal'}</button> `:''}<button class="s" onclick="tab='${t}';vw=null;admin()">Kelola</button>${n?` <button class="d" onclick="delP('${t}')">Hapus</button>`:''}</td></tr>`}).join('')}</table></div>
-  ${vw&&P[vw]?`<div class="card"><b>Isi paket ${NM[vw]} · ${P[vw].length} soal</b>${P[vw].map((x,i)=>{const kk=(K[vw]||[])[i]||{};return`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small class="${kk.k===k?'pass':''}">${kk.k===k?'✓ ':''}${k}. ${rich(v)}${kk.p&&kk.p[k]?' <i>('+kk.p[k]+')</i>':''}</small>`).join('<br>')}</div>`}).join('')}</div>`:''}`}
- else if(EXP[tab]){const{data:pr}=await sb.from('packages').select('questions').eq('type',tab).maybeSingle();const sv=pr?.questions||[],pd=pend[tab];
-  h+=`<div class="card"><b>${NM[tab]} · tersimpan ${sv.length} soal (target ${EXP[tab]})</b><p>Upload file Word (.docx). Format: nomor soal "1.", opsi "A." sampai "E.", kunci "Kunci: B"${tab==='tkp'||tab==='to'?', poin TKP di akhir opsi mis. "(5)" atau baris "Skor: A=1, B=2, ..."':''}. Gambar dan tabel di dalam Word ikut terbaca.</p>
+ else if(tab==='kumpulan'){const[r1,r3]=await Promise.all([sb.from('paket_soal').select('id,type,name,jml,created_at').order('id',{ascending:false}),sb.from('sessions').select('paket_id')]);
+  if(r1.error){h+=`<div class="card"><div class="err">${esc(r1.error.message)}</div><p>Tabel paket soal belum ada. Jalankan file paket-soal.sql di Supabase terlebih dahulu.</p></div>`}
+  else{const pl=r1.data||[];PL={};pl.forEach(x=>PL[x.id]=x);
+  const used=id=>(r3.data||[]).filter(x=>x.paket_id===id).length;
+  let vd=null;if(vw){const r=await sb.from('paket_soal').select('*').eq('id',vw).maybeSingle();vd=r.data}
+  h+=`<div class="card" style="overflow:auto"><b>Kumpulan paket soal</b><p>Semua paket yang pernah diunggah tersimpan di sini. Paket baru tidak menimpa paket lama. Untuk menambah paket, klik tombol Unggah paket pada jenis yang diinginkan.</p>
+  <table><tr><th>Nama paket</th><th>Soal</th><th>Status</th><th>Dipakai</th><th>Diunggah</th><th></th></tr>${Object.keys(EXP).map(t=>{const L=pl.filter(x=>x.type===t);
+   return`<tr><td colspan="6" style="background:#0c1730"><b>${NM[t]}</b> · ${L.length} paket <button class="s" style="padding:4px 12px;margin-left:8px" onclick="tab='${t}';vw=null;admin()">+ Unggah paket</button></td></tr>`+(L.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.jml} / ${EXP[t]}</td><td class="${x.jml>=EXP[t]?'pass':'fail'}">${x.jml>=EXP[t]?'Lengkap':'Belum lengkap'}</td><td>${used(x.id)} sesi</td><td>${dt(x.created_at)}</td><td style="white-space:nowrap"><button class="s" onclick="vw=vw===${x.id}?null:${x.id};admin()">${vw===x.id?'Tutup':'Lihat soal'}</button> <button class="s" onclick="renameP(${x.id})">Ubah nama</button> <button class="d" onclick="delP(${x.id})">Hapus</button></td></tr>`).join('')||'<tr><td colspan="6"><small>Belum ada paket.</small></td></tr>')}).join('')}</table></div>
+  ${vd?`<div class="card"><b>${esc(vd.name)} · ${vd.jml} soal</b>${(vd.questions||[]).map((x,i)=>{const kk=(vd.keys||[])[i]||{};return`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small class="${kk.k===k?'pass':''}">${kk.k===k?'✓ ':''}${k}. ${rich(v)}${kk.p&&kk.p[k]?' <i>('+kk.p[k]+')</i>':''}</small>`).join('<br>')}</div>`}).join('')}</div>`:''}`}}
+ else if(EXP[tab]){const{data:pl}=await sb.from('paket_soal').select('id,type,name,jml,created_at').eq('type',tab).order('id',{ascending:false}),pd=pend[tab],L=pl||[];
+  h+=`<div class="card"><b>Unggah paket ${NM[tab]} baru · ${L.length} paket tersimpan (target ${EXP[tab]} soal)</b><p>Upload file Word (.docx). Format: nomor soal "1.", opsi "A." sampai "E.", kunci "Kunci: B"${tab==='tkp'||tab==='to'?', poin TKP di akhir opsi mis. "(5)" atau baris "Skor: A=1, B=2, ..."':''}. Gambar dan tabel di dalam Word ikut terbaca. Setiap unggahan disimpan sebagai paket baru dan tidak menimpa paket yang sudah ada.</p>
   <input type="file" id="f" accept=".docx" onchange="up('${tab}',this.files[0])">
-  ${pd?`<div class="${pd.warn.length?'fail':'ok'}">Terbaca ${pd.q.length} soal. ${pd.warn.join(' ')}</div><button onclick="saveP('${tab}')">Simpan paket</button> `:''}${sv.length?`<button class="d" onclick="delP('${tab}')">Hapus paket</button>`:''}<div class="err" id="e"></div></div>
-  ${(pd?pd.q:sv).slice(0,3).map((x,i)=>`<div class="card"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small>${k}. ${rich(v)}</small>`).join('<br>')}</div>`).join('')}
-  ${(()=>{const L=(pd?pd.q:sv).filter(x=>x.q.includes('[[img:')||x.q.includes('[[tbl:')).slice(0,2);return L.length?`<div class="card"><b>Contoh soal bergambar/bertabel</b>${L.map(x=>`<div style="margin-top:10px;white-space:pre-wrap">${rich(x.q)}</div>`).join('')}</div>`:''})()}`}
- else if(tab==='sesi'){const{data:ss}=await sb.from('sessions').select('*').order('id',{ascending:false});
+  ${pd?`<div class="${pd.warn.length?'fail':'ok'}">Terbaca ${pd.q.length} soal. ${pd.warn.join(' ')}</div><label>Nama paket</label><input id="pnm" value="${esc(NM[tab]+' Paket '+(L.length+1))}"><button onclick="saveP('${tab}')">Simpan sebagai paket baru</button>`:''}<div class="err" id="e"></div></div>
+  <div class="card" style="overflow:auto"><b>Paket ${NM[tab]} tersimpan</b><table><tr><th>Nama paket</th><th>Soal</th><th>Diunggah</th><th></th></tr>${L.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.jml} / ${EXP[tab]}</td><td>${dt(x.created_at)}</td><td style="white-space:nowrap"><button class="s" onclick="tab='kumpulan';vw=${x.id};admin()">Lihat soal</button> <button class="s" onclick="renameP(${x.id})">Ubah nama</button> <button class="d" onclick="delP(${x.id})">Hapus</button></td></tr>`).join('')||'<tr><td colspan="4">Belum ada paket.</td></tr>'}</table></div>
+  ${(pd?pd.q:[]).slice(0,3).map((x,i)=>`<div class="card"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small>${k}. ${rich(v)}</small>`).join('<br>')}</div>`).join('')}
+  ${(()=>{const M=(pd?pd.q:[]).filter(x=>x.q.includes('[[img:')||x.q.includes('[[tbl:')).slice(0,2);return M.length?`<div class="card"><b>Contoh soal bergambar/bertabel</b>${M.map(x=>`<div style="margin-top:10px;white-space:pre-wrap">${rich(x.q)}</div>`).join('')}</div>`:''})()}`}
+ else if(tab==='sesi'){const[r1,r2]=await Promise.all([sb.from('sessions').select('*').order('id',{ascending:false}),sb.from('paket_soal').select('id,type,name,jml').order('id',{ascending:false})]);
+  const ss=r1.data,pl=r2.data||[];PL={};pl.forEach(x=>PL[x.id]=x);
   const e=(ss||[]).find(x=>x.id===edS)||null,sp=e&&e.start_at?new Date(e.start_at):null,ep=e&&e.end_at?new Date(e.end_at):null,dv=sp?ymd(sp):'';
+  const f0=e&&PL[e.paket_id]?PL[e.paket_id]:pl[0];
   h+=`<div class="card"><b>${e?'Ubah sesi ujian':'Buat sesi ujian'}</b><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">
    <div><label>Nama sesi</label><input id="sn" value="${e?esc(e.name):''}"></div>
-   <div><label>Paket</label><select id="st" onchange="$('#sd').value=DUR[this.value]">${Object.keys(EXP).map(k=>`<option value="${k}"${e&&e.type===k?' selected':''}>${NM[k]}</option>`).join('')}</select></div>
+   <div><label>Paket soal</label><select id="st" onchange="$('#sd').value=DUR[PL[this.value].type]">${pl.map(x=>`<option value="${x.id}"${f0&&f0.id===x.id?' selected':''}>${esc(x.name)} (${NM[x.type]}, ${x.jml} soal)</option>`).join('')||'<option value="">Belum ada paket soal</option>'}</select></div>
    <div><label>TOKEN</label><input id="sk" value="${e?esc(e.token):Math.random().toString(36).slice(2,8).toUpperCase()}"></div>
-   <div><label>Durasi (menit)</label><input id="sd" type="number" value="${e?e.dur:120}"></div></div>
+   <div><label>Durasi (menit)</label><input id="sd" type="number" value="${e?e.dur:(f0?DUR[f0.type]:120)}"></div></div>
    <b style="display:block;margin-top:6px">Jadwal pelaksanaan</b>
    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">
    <div><label>Tanggal ujian</label><input id="sdt" type="date" value="${dv}" onchange="const v=this.value;$('#dh').textContent=v?fD(v+'T00:00'):''"><small id="dh" class="ok">${dv?fD(dv+'T00:00'):''}</small></div>
@@ -179,7 +184,7 @@ async function admin(){A.hidden=false;A.innerHTML=shell()+'<div class="card">Mem
    <div><label>Jam ditutup (opsional)</label><input id="sjs" type="time" value="${ep?hm(ep):''}"></div></div>
    <p><small>Kosongkan tanggal dan jam bila sesi boleh dimulai kapan saja. Peserta hanya bisa memulai di antara jam mulai dan jam ditutup.</small></p>
    <div class="err" id="e"></div><button onclick="addS()">${e?'Simpan perubahan':'Buat sesi'}</button>${e?' <button class="s" onclick="edS=null;admin()">Batal</button>':''}</div>
-  <div class="card" style="overflow:auto"><table><tr><th>Sesi</th><th>Paket</th><th>TOKEN</th><th>Jadwal</th><th>Menit</th><th>Status</th><th></th></tr>${(ss||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${NM[x.type]}</td><td><b>${esc(x.token)}</b></td><td>${schedTxt(x)}</td><td>${x.dur}</td><td>${schedSt(x)}</td><td style="white-space:nowrap"><button class="s" onclick="edS=${x.id};admin();scrollTo(0,0)">Ubah</button> <button class="s" onclick="togS(${x.id},${!x.aktif})">${x.aktif?'Tutup':'Buka'}</button> <button class="d" onclick="delS(${x.id})">Hapus</button></td></tr>`).join('')||'<tr><td colspan=7>Belum ada sesi.</td></tr>'}</table></div>`}
+  <div class="card" style="overflow:auto"><table><tr><th>Sesi</th><th>Paket soal</th><th>TOKEN</th><th>Jadwal</th><th>Menit</th><th>Status</th><th></th></tr>${(ss||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${PL[x.paket_id]?esc(PL[x.paket_id].name)+'<br><small>'+NM[x.type]+'</small>':'<span class="fail">Paket belum dipilih</span><br><small>'+NM[x.type]+'</small>'}</td><td><b>${esc(x.token)}</b></td><td>${schedTxt(x)}</td><td>${x.dur}</td><td>${schedSt(x)}</td><td style="white-space:nowrap"><button class="s" onclick="edS=${x.id};admin();scrollTo(0,0)">Ubah</button> <button class="s" onclick="togS(${x.id},${!x.aktif})">${x.aktif?'Tutup':'Buka'}</button> <button class="d" onclick="delS(${x.id})">Hapus</button></td></tr>`).join('')||'<tr><td colspan=7>Belum ada sesi.</td></tr>'}</table></div>`}
  else{const{data:rs}=await sb.from('results').select('*').order('created_at',{ascending:false}).limit(500);
   h+=`<div class="card" style="overflow:auto"><table><tr><th>Waktu</th><th>Nama</th><th>Sesi</th><th>TWK</th><th>TIU</th><th>TKP</th><th>Total</th><th>Hasil</th></tr>${(rs||[]).map(r=>`<tr><td>${new Date(r.created_at).toLocaleString('id-ID')}</td><td>${esc(r.nm)}</td><td>${esc(r.ses)}</td>${['twk','tiu','tkp'].map(k=>`<td>${r.subs.includes(k)?r.sc[k]:'-'}</td>`).join('')}<td><b>${r.tot}</b></td><td class="${r.ok?'pass':'fail'}">${r.ok?'Lulus':'Belum Lulus'}</td></tr>`).join('')||'<tr><td colspan=8>Belum ada riwayat.</td></tr>'}</table>${(rs||[]).length?'<br><button class="d" onclick="clearR()">Hapus riwayat</button>':''}</div>`}
  A.innerHTML=h+'</div>'}
@@ -195,7 +200,8 @@ async function addS(){const n=$('#sn').value.trim(),k=$('#sk').value.trim();if(!
  if((m||t)&&!d)return err('Isi tanggal ujian.');
  if(d&&!m)return err('Isi jam mulai.');
  if(m&&t&&t<=m)return err('Jam ditutup harus lebih akhir dari jam mulai.');
- const row={name:n,type:$('#st').value,token:k,dur:+$('#sd').value||120};
+ const pk=PL[+$('#st').value];if(!pk)return err('Pilih paket soal. Unggah paket dulu bila belum ada.');
+ const row={name:n,type:pk.type,paket_id:pk.id,token:k,dur:+$('#sd').value||120};
  if(d||edS){row.start_at=d?new Date(d+'T'+m).toISOString():null;row.end_at=d&&t?new Date(d+'T'+t).toISOString():null}
  const{error}=edS?await sb.from('sessions').update(row).eq('id',edS):await sb.from('sessions').insert(row);
  if(error)return err(/start_at|end_at|column/i.test(error.message)?'Kolom jadwal belum ada di database. Jalankan SQL jadwal di Supabase dulu.':error.message);
@@ -246,10 +252,14 @@ function parse(txt,t){const qs=[];let c=null,last=null;
  const nk=qs.filter((q,i)=>!(t==='tkp'||(t==='to'&&i>=65))&&!q.k).length;if(nk)w.push(`${nk} soal tanpa kunci.`);
  const np=qs.filter((q,i)=>(t==='tkp'||(t==='to'&&i>=65))&&Object.keys(q.p).length<Object.keys(q.o).length).length;if(np)w.push(`${np} soal TKP poin opsinya belum lengkap.`);
  return{q:qs,warn:w}}
-async function saveP(t){const qs=pend[t].q;err('Menyimpan...');
- const a=await sb.from('packages').upsert({type:t,questions:qs.map(x=>({q:x.q,o:x.o}))});if(a.error)return err(a.error.message);
- const b=await sb.from('package_keys').upsert({type:t,keys:qs.map(x=>({k:x.k,p:x.p,e:x.e}))});if(b.error)return err(b.error.message);
- delete pend[t];admin()}
-async function delP(t){if(!confirm('Hapus paket ini?'))return;await sb.from('packages').delete().eq('type',t);await sb.from('package_keys').delete().eq('type',t);admin()}
+async function saveP(t){const qs=pend[t].q;if(!qs.length)return err('Tidak ada soal yang terbaca.');
+ const nm=($('#pnm').value||'').trim()||NM[t]+' Paket';err('Menyimpan...');
+ const{error}=await sb.from('paket_soal').insert({type:t,name:nm,questions:qs.map(x=>({q:x.q,o:x.o})),keys:qs.map(x=>({k:x.k,p:x.p,e:x.e}))});
+ if(error)return err(error.message);delete pend[t];admin()}
+async function renameP(id){const n=prompt('Nama paket:',(PL[id]||{}).name||'');if(!n||!n.trim())return;
+ const{error}=await sb.from('paket_soal').update({name:n.trim()}).eq('id',id);if(error)alert(error.message);admin()}
+async function delP(id){const{count}=await sb.from('sessions').select('id',{count:'exact',head:true}).eq('paket_id',id);
+ if(!confirm(count?`Paket ini dipakai ${count} sesi. Jika dihapus, sesi tersebut tidak bisa dimulai sebelum paketnya diganti. Tetap hapus?`:'Hapus paket ini?'))return;
+ const{error}=await sb.from('paket_soal').delete().eq('id',id);if(error)alert(error.message);admin()}
 route();
 </script></body></html>
