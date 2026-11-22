@@ -190,7 +190,7 @@ async function startT(){const nm=$('#nm').value.trim(),tk=$('#tk').value.trim();
  const{data:s,error}=await sb.rpc('start_exam',{p_token:tk});
  if(error){home();$('#e').textContent=error.message;return}
  T={s,nm,qs:s.qs,a:{},i:0,end:Date.now()+s.dur*60000,done:false,busy:false};
- $('#test').hidden=false;A.hidden=true;paint();clearInterval(pinger);pinger=setInterval(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_answered:Object.keys(T.a).length})},15000);tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
+ $('#test').hidden=false;A.hidden=true;paint();clearInterval(pinger);pinger=setInterval(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a})},15000);tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
 const fmt=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return[Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 const FSE=document.documentElement,fsOK=!!(FSE.requestFullscreen||FSE.webkitRequestFullscreen),fsOn=()=>document.fullscreenElement||document.webkitFullscreenElement;
 function toggleFS(){try{if(fsOn())(document.exitFullscreen||document.webkitExitFullscreen).call(document);else(FSE.requestFullscreen||FSE.webkitRequestFullscreen).call(FSE)}catch(e){}}
@@ -212,11 +212,12 @@ function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
  const cnt=g=>{let c=0;for(let n=g[1];n<Math.min(g[2],qs.length);n++)if(a[n])c++;return c+'/'+(Math.min(g[2],qs.length)-g[1])};
  $('#test').innerHTML=`<div class="stage"><div class="bar"><img src="${BANNER}" alt=""><b>${esc(T.nm)} · ${esc(s.name)}</b><span class="lb">SOAL ${i+1} / ${qs.length} · ${NM[subOf(i)]}</span><span class="tm" id="tm">${fmt(T.end-Date.now())}</span>${fsOK?`<button class="fs" onclick="toggleFS()" title="Layar penuh / keluar layar penuh"><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`:''}</div>
  <div class="qa2"><div class="qp"><div class="qt">${rich(q.q)}</div></div>
- <div class="qo">${L.split('').filter(c=>q.o[c]!=null).map(c=>`<button class="op ${a[i]===c?'sel':''}" onclick="pick('${c}')"><i>${c}</i><span>${rich(q.o[c])}</span></button>`).join('')}</div></div>
+ <div class="qo">${L.split('').filter(c=>q.o[c]!=null).map(c=>`<button class="op ${a[i]===c?'sel':''}" onclick="pick('${c}')"><i>${c}</i><span>${rich(String(q.o[c]).replace(PRE,''))}</span></button>`).join('')}</div></div>
  <div class="ft"><button class="bk" onclick="go(${i-1})" ${i?'':'disabled'}>Back</button><button onclick="go(${i+1})" ${i<qs.length-1?'':'disabled'}>Next</button><button class="alt" onclick="if(confirm('Selesaikan ujian sekarang?'))finish()">Selesai</button></div>
  ${groups.length>1?`<div class="tabs2">${groups.map((g,k)=>`<button class="${k===T.tab?'on':''}" onclick="T.tab=${k};paint()">${g[0]} ${cnt(g)}</button>`).join('')}</div>`:''}
  <div class="nv">${groups.map((g,k)=>`<div class="grp ${k===T.tab?'on':''}"><small>${g[0]} ${cnt(g)}</small><div>${qs.slice(g[1],Math.min(g[2],qs.length)).map((_,j)=>{const n=g[1]+j;return`<button class="${a[n]?'dn':''} ${n===i?'cur':''}" onclick="go(${n})">${n+1}</button>`}).join('')}</div></div>`).join('')}</div></div>`}
-const pick=c=>{T.a[T.i]=c;paint();clearTimeout(pingTo);pingTo=setTimeout(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_answered:Object.keys(T.a).length})},1500)},go=n=>{T.i=n;T.tab=null;paint()};
+const PRE=/^\s*poin\s*[1-5]\s*[\u2014\u2013-]\s*/i;
+const pick=c=>{T.a[T.i]=c;paint();clearTimeout(pingTo);pingTo=setTimeout(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a})},800)},go=n=>{T.i=n;T.tab=null;paint()};
 async function finish(){if(!T||T.busy||T.done)return;T.busy=true;clearInterval(tick);clearInterval(pinger);clearTimeout(pingTo);
  $('#test').innerHTML='<div class="stage"><div class="qa" style="display:flex;align-items:center;justify-content:center"><h2>Mengirim jawaban...</h2></div></div>';
  const{data:r,error}=await sb.rpc('submit_exam',{p_sid:T.s.id,p_nm:T.nm,p_ans:T.a,p_aid:T.s.aid||null});
@@ -342,10 +343,12 @@ function parse(txt,t){const qs=[];let c=null,last=null;
   if(c&&(m=l.match(/^(?:kunci(?:\s*jawaban)?|jawaban)\s*[:=]\s*\(?([A-Ea-e])/i)))return c.k=m[1].toUpperCase();
   if(c&&(m=l.match(/^(?:skor|poin|nilai)[^:=]*[:=]\s*(.+)/i))){const p={};[...m[1].matchAll(/([A-Ea-e])\s*[=:\-–]\s*([1-5])/g)].forEach(x=>p[x[1].toUpperCase()]=+x[2]);if(Object.keys(p).length)return Object.assign(c.p,p)}
   if(c&&(m=l.match(/^pembahasan\s*[:=]?\s*(.*)/i))){c.e=m[1];return last='e'}
-  if(c&&(m=l.match(/^\(?([A-E])[.)]\s*(.*)/))&&m[1]==='ABCDE'[Object.keys(c.o).length]){const[x,p]=pts(m[2]),L=m[1];c.o[L]=x;if(p)c.p[L]=p;return last=L}
+  if(c&&last==='e'&&(m=l.match(/^\(?([A-E])[.)]\s*poin\s*([1-5])\s*[\u2014\u2013-]?\s*([\s\S]*)$/i))){c.p[m[1].toUpperCase()]=+m[2];c.e+=' '+m[1].toUpperCase()+'. '+m[3];return}
+   if(c&&last!=='e'&&(m=l.match(/^\(?([A-E])[.)]\s*(.*)/))&&m[1]==='ABCDE'[Object.keys(c.o).length]){let[x,p]=pts(m[2]);const L=m[1],pm=x.match(/^\s*poin\s*([1-5])\s*[\u2014\u2013-]\s*([\s\S]*)$/i);if(pm){x=pm[2];p=p||+pm[1]}c.o[L]=x;if(p)c.p[L]=p;return last=L}
   if((m=l.match(/^(\d{1,3})\s*[.)]\s+(.*)/))&&(!c||c.k||c.e||Object.keys(c.o).length>=5)){c={q:m[2],o:{},k:'',p:{},e:''};qs.push(c);return last='q'}
   if(c){if(last==='q')c.q+='\n'+l;else if(last==='e')c.e+=' '+l;else if(last)c.o[last]+=' '+l}});
  const w=[],n=EXP[t];if(qs.length!==n)w.push(`Jumlah soal harus ${n}.`);
+  const no=qs.filter(q=>Object.keys(q.o).length<5).length;if(no)w.push(`${no} soal opsinya kurang dari 5 (A-E). Periksa file Word sebelum disimpan.`);
  const nk=qs.filter((q,i)=>!(t==='tkp'||(t==='to'&&i>=65))&&!q.k).length;if(nk)w.push(`${nk} soal tanpa kunci.`);
  const np=qs.filter((q,i)=>(t==='tkp'||(t==='to'&&i>=65))&&Object.keys(q.p).length<Object.keys(q.o).length).length;if(np)w.push(`${np} soal TKP poin opsinya belum lengkap.`);
  return{q:qs,warn:w}}
@@ -368,12 +371,12 @@ function boardHtml(b){
   const sum=[['Sedang mengerjakan',c('berjalan')],['Selesai',dn.length],['Lulus',lulus],['Rata-rata skor',dn.length?avg:'-'],['Total peserta',R.length]];
   return `<div class="lv-sum">${sum.map(x=>`<div><span class="n">${x[1]}</span>${x[0]}</div>`).join('')}</div>
   <table><tr><th>#</th><th>Nama</th><th>Status</th><th>Progres</th>${ks.map(k=>`<th>${NM[k]}</th>`).join('')}<th>Total</th><th>Hasil</th></tr>
-  ${R.map(x=>{const d=x.st==='selesai',L=LST[x.st]||LST.habis,pc=x.total?Math.round(x.ans/x.total*100):0;if(d)rk++;
-   return `<tr><td>${d?rk:'-'}</td><td><b>${esc(x.nm)}</b><br><small style="color:var(--mu)">mulai ${fT(x.started_at)}</small></td>
+  ${R.map(x=>{const d=x.st==='selesai',L=LST[x.st]||LST.habis,pc=x.total?Math.round(x.ans/x.total*100):0;rk++;
+   return `<tr><td>${rk}</td><td><b>${esc(x.nm)}</b><br><small style="color:var(--mu)">mulai ${fT(x.started_at)}</small></td>
    <td><span class="lv-b" style="color:${L[1]}">${x.st==='berjalan'?'<span class="lv-dot"></span>':''}${L[0]}</span></td>
    <td style="min-width:120px"><div class="lv-bar"><span style="width:${d?100:pc}%"></span></div><small>${x.ans}/${x.total} soal</small></td>
-   ${ks.map(k=>`<td>${d&&x.subs&&x.subs.includes(k)?x.sc[k]:'-'}</td>`).join('')}
-   <td><b>${d?x.tot:'-'}</b></td><td class="${d?(x.ok?'pass':'fail'):''}">${d?(x.ok?'Lulus':'Belum Lulus'):'-'}</td></tr>`}).join('')||`<tr><td colspan="${ks.length+5}">Belum ada peserta yang memulai ujian.</td></tr>`}</table>`}
+   ${ks.map(k=>`<td${d?'':' style="color:var(--y)"'}>${x.sc?x.sc[k]:(x.st==='berjalan'?0:'-')}</td>`).join('')}
+   <td${d?'':' style="color:var(--y)"'}><b>${x.tot!=null?x.tot:(x.st==='berjalan'?0:'-')}</b>${!d&&x.st==='berjalan'?'<br><small>sementara</small>':''}</td><td class="${d?(x.ok?'pass':'fail'):''}">${d?(x.ok?'Lulus':'Belum Lulus'):'-'}</td></tr>`}).join('')||`<tr><td colspan="${ks.length+5}">Belum ada peserta yang memulai ujian.</td></tr>`}</table>`}
 function startLive(code,sel,pub){clearInterval(liveT);
   const run=async()=>{if(liveBusy)return;liveBusy=true;
    try{const{data,error}=await sb.rpc('live_board',{p_code:code}),el=$(sel);if(!el){clearInterval(liveT);return}
