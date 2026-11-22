@@ -217,6 +217,8 @@ function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
  ${groups.length>1?`<div class="tabs2">${groups.map((g,k)=>`<button class="${k===T.tab?'on':''}" onclick="T.tab=${k};paint()">${g[0]} ${cnt(g)}</button>`).join('')}</div>`:''}
  <div class="nv">${groups.map((g,k)=>`<div class="grp ${k===T.tab?'on':''}"><small>${g[0]} ${cnt(g)}</small><div>${qs.slice(g[1],Math.min(g[2],qs.length)).map((_,j)=>{const n=g[1]+j;return`<button class="${a[n]?'dn':''} ${n===i?'cur':''}" onclick="go(${n})">${n+1}</button>`}).join('')}</div></div>`).join('')}</div></div>`}
 const PRE=/^\s*poin\s*[1-5]\s*[\u2014\u2013-]\s*/i;
+/* opsi yang diawali "(Poin N)" / "Poin N" = baris pembahasan yang salah terbaca sebagai opsi */
+const OPT_BAD=/^\s*[\[(]?\s*poin\s*[1-5]\b/i,badQ=x=>Object.values((x&&x.o)||{}).some(v=>OPT_BAD.test(String(v)));
 const pick=c=>{T.a[T.i]=c;paint();clearTimeout(pingTo);pingTo=setTimeout(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a})},800)},go=n=>{T.i=n;T.tab=null;paint()};
 async function finish(){if(!T||T.busy||T.done)return;T.busy=true;clearInterval(tick);clearInterval(pinger);clearTimeout(pingTo);
  $('#test').innerHTML='<div class="stage"><div class="qa" style="display:flex;align-items:center;justify-content:center"><h2>Mengirim jawaban...</h2></div></div>';
@@ -246,7 +248,7 @@ async function admin(){clearInterval(liveT);liveCur=null;A.hidden=false;A.innerH
   h+=`<div class="card" style="overflow:auto"><b>Kumpulan paket soal</b><p>Semua paket yang pernah diunggah tersimpan di sini. Paket baru tidak menimpa paket lama. Untuk menambah paket, klik tombol Unggah paket pada jenis yang diinginkan.</p>
   <table><tr><th>Nama paket</th><th>Soal</th><th>Status</th><th>Dipakai</th><th>Diunggah</th><th></th></tr>${Object.keys(EXP).map(t=>{const L=pl.filter(x=>x.type===t);
    return`<tr><td colspan="6" style="background:rgba(255,255,255,.08)"><b>${NM[t]}</b> · ${L.length} paket <button class="s" style="padding:4px 12px;margin-left:8px" onclick="tab='${t}';vw=null;admin()">+ Unggah paket</button></td></tr>`+(L.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.jml} / ${EXP[t]}</td><td class="${x.jml>=EXP[t]?'pass':'fail'}">${x.jml>=EXP[t]?'Lengkap':'Belum lengkap'}</td><td>${used(x.id)} sesi</td><td>${dt(x.created_at)}</td><td style="white-space:nowrap"><button class="s" onclick="vw=vw===${x.id}?null:${x.id};admin()">${vw===x.id?'Tutup':'Lihat soal'}</button> <button class="s" onclick="renameP(${x.id})">Ubah nama</button> <button class="d" onclick="delP(${x.id})">Hapus</button></td></tr>`).join('')||'<tr><td colspan="6"><small>Belum ada paket.</small></td></tr>')}).join('')}</table></div>
-  ${vd?`<div class="card"><b>${esc(vd.name)} · ${vd.jml} soal</b>${(vd.questions||[]).map((x,i)=>{const kk=(vd.keys||[])[i]||{};return`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small class="${kk.k===k?'pass':''}">${kk.k===k?'✓ ':''}${k}. ${rich(v)}${kk.p&&kk.p[k]?' <i>('+kk.p[k]+')</i>':''}</small>`).join('<br>')}</div>`}).join('')}</div>`:''}`}}
+  ${vd?`<div class="card"><b>${esc(vd.name)} · ${vd.jml} soal</b>${(vd.questions||[]).some(badQ)?`<div class="fail" style="margin:8px 0">⚠ Paket ini RUSAK: ${(vd.questions||[]).filter(badQ).length} soal opsinya berisi pembahasan, bukan opsi asli. Hapus paket ini, unggah ulang file Word-nya, lalu pilih paket baru di Sesi Ujian.</div>`:''}${(vd.questions||[]).map((x,i)=>{const kk=(vd.keys||[])[i]||{};return`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--ln)"><b>${i+1}.</b> <span style="white-space:pre-wrap">${rich(x.q)}</span><br>${Object.entries(x.o).map(([k,v])=>`<small class="${kk.k===k?'pass':''}">${kk.k===k?'✓ ':''}${k}. ${rich(v)}${kk.p&&kk.p[k]?' <i>('+kk.p[k]+')</i>':''}</small>`).join('<br>')}</div>`}).join('')}</div>`:''}`}}
  else if(EXP[tab]){const{data:pl}=await sb.from('paket_soal').select('id,type,name,jml,created_at').eq('type',tab).order('id',{ascending:false}),pd=pend[tab],L=pl||[];
   h+=`<div class="card"><b>Unggah paket ${NM[tab]} baru · ${L.length} paket tersimpan (target ${EXP[tab]} soal)</b><p>Upload file Word (.docx). Format: nomor soal "1.", opsi "A." sampai "E.", kunci "Kunci: B"${tab==='tkp'||tab==='to'?', poin TKP di akhir opsi mis. "(5)" atau baris "Skor: A=1, B=2, ..."':''}. Gambar dan tabel di dalam Word ikut terbaca. Setiap unggahan disimpan sebagai paket baru dan tidak menimpa paket yang sudah ada.</p>
   <input type="file" id="f" accept=".docx" onchange="up('${tab}',this.files[0])">
@@ -340,19 +342,21 @@ async function up(t,f){if(!f)return;
 function parse(txt,t){const qs=[];let c=null,last=null;
  const pts=s=>{let m=s.match(/^(.*?)\s*[\[(]\s*(?:skor|poin|nilai)?\s*[:=]?\s*([1-5])\s*(?:poin|pts?)?\s*[\])]\s*$/i);return m?[m[1],+m[2]]:[s,null]};
  txt.split(/\n+/).map(l=>l.trim()).filter(Boolean).forEach(l=>{let m;
-  if(c&&(m=l.match(/^(?:kunci(?:\s*jawaban)?|jawaban)\s*[:=]\s*\(?([A-Ea-e])/i)))return c.k=m[1].toUpperCase();
-  if(c&&(m=l.match(/^(?:skor|poin|nilai)[^:=]*[:=]\s*(.+)/i))){const p={};[...m[1].matchAll(/([A-Ea-e])\s*[=:\-–]\s*([1-5])/g)].forEach(x=>p[x[1].toUpperCase()]=+x[2]);if(Object.keys(p).length)return Object.assign(c.p,p)}
+  if(c&&(m=l.match(/^(?:kunci(?:\s*jawaban)?|jawaban)\s*[:=]\s*\(?([A-Ea-e])/i))){if(/^[A-E]$/.test(last))last='x';return c.k=m[1].toUpperCase()}
+  if(c&&(m=l.match(/^(?:skor|poin|nilai)[^:=]*[:=]\s*(.+)/i))){const p={};[...m[1].matchAll(/([A-Ea-e])\s*[=:\-–]\s*([1-5])/g)].forEach(x=>p[x[1].toUpperCase()]=+x[2]);if(Object.keys(p).length){if(/^[A-E]$/.test(last))last='x';return Object.assign(c.p,p)}}
   if(c&&(m=l.match(/^pembahasan\s*[:=]?\s*(.*)/i))){c.e=m[1];return last='e'}
-  if(c&&last==='e'&&(m=l.match(/^\(?([A-E])[.)]\s*poin\s*([1-5])\s*[\u2014\u2013-]?\s*([\s\S]*)$/i))){c.p[m[1].toUpperCase()]=+m[2];c.e+=' '+m[1].toUpperCase()+'. '+m[3];return}
+  if(c&&last==='e'&&(m=l.match(/^\(?([A-E])[.)]\s*[\[(]?\s*poin\s*([1-5])\s*[\])]?\s*[:\u2014\u2013-]?\s*([\s\S]*)$/i))){const L=m[1].toUpperCase();if(c.p[L]==null)c.p[L]=+m[2];c.e+=' '+L+' (poin '+m[2]+'): '+m[3];return}
    if(c&&last!=='e'&&(m=l.match(/^\(?([A-E])[.)]\s*(.*)/))&&m[1]==='ABCDE'[Object.keys(c.o).length]){let[x,p]=pts(m[2]);const L=m[1],pm=x.match(/^\s*poin\s*([1-5])\s*[\u2014\u2013-]\s*([\s\S]*)$/i);if(pm){x=pm[2];p=p||+pm[1]}c.o[L]=x;if(p)c.p[L]=p;return last=L}
   if((m=l.match(/^(\d{1,3})\s*[.)]\s+(.*)/))&&(!c||c.k||c.e||Object.keys(c.o).length>=5)){c={q:m[2],o:{},k:'',p:{},e:''};qs.push(c);return last='q'}
-  if(c){if(last==='q')c.q+='\n'+l;else if(last==='e')c.e+=' '+l;else if(last)c.o[last]+=' '+l}});
+  if(c){if(last==='q')c.q+='\n'+l;else if(last==='e')c.e+=' '+l;else if(last&&c.o[last]!=null)c.o[last]+=' '+l}});
  const w=[],n=EXP[t];if(qs.length!==n)w.push(`Jumlah soal harus ${n}.`);
   const no=qs.filter(q=>Object.keys(q.o).length<5).length;if(no)w.push(`${no} soal opsinya kurang dari 5 (A-E). Periksa file Word sebelum disimpan.`);
  const nk=qs.filter((q,i)=>!(t==='tkp'||(t==='to'&&i>=65))&&!q.k).length;if(nk)w.push(`${nk} soal tanpa kunci.`);
  const np=qs.filter((q,i)=>(t==='tkp'||(t==='to'&&i>=65))&&Object.keys(q.p).length<Object.keys(q.o).length).length;if(np)w.push(`${np} soal TKP poin opsinya belum lengkap.`);
+ const bo=qs.filter(badQ).length;if(bo)w.push(`${bo} soal: opsi berisi teks pembahasan ("(Poin N) ..."), bukan opsi asli. Jangan disimpan; periksa file Word.`);
  return{q:qs,warn:w}}
 async function saveP(t){const qs=pend[t].q;if(!qs.length)return err('Tidak ada soal yang terbaca.');
+  if(qs.some(badQ))return err('Paket TIDAK disimpan: ada opsi yang berisi teks pembahasan ("(Poin N) ..."). Periksa format file Word.');
  const nm=($('#pnm').value||'').trim()||NM[t]+' Paket';err('Menyimpan...');
  const{error}=await sb.from('paket_soal').insert({type:t,name:nm,questions:qs.map(x=>({q:x.q,o:x.o})),keys:qs.map(x=>({k:x.k,p:x.p,e:x.e}))});
  if(error)return err(error.message);delete pend[t];admin()}
