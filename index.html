@@ -190,7 +190,7 @@ async function startT(){const nm=$('#nm').value.trim(),tk=$('#tk').value.trim();
  const{data:s,error}=await sb.rpc('start_exam',{p_token:tk});
  if(error){home();$('#e').textContent=error.message;return}
  T={s,nm,qs:s.qs,a:{},i:0,end:Date.now()+s.dur*60000,done:false,busy:false};
- $('#test').hidden=false;A.hidden=true;paint();clearInterval(pinger);pinger=setInterval(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a})},15000);tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
+ $('#test').hidden=false;A.hidden=true;paint();clearInterval(pinger);pinger=setInterval(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a}).then(r=>{if(r&&r.error)console.warn('ping_exam',r.error.message)},()=>{})},15000);tick=setInterval(()=>{const l=T.end-Date.now();if(l<=0)return finish();const e=$('#tm');if(e)e.textContent=fmt(l)},500)}
 const fmt=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return[Math.floor(t/3600),Math.floor(t/60)%60,t%60].map(n=>String(n).padStart(2,'0')).join(':')};
 const FSE=document.documentElement,fsOK=!!(FSE.requestFullscreen||FSE.webkitRequestFullscreen),fsOn=()=>document.fullscreenElement||document.webkitFullscreenElement;
 function toggleFS(){try{if(fsOn())(document.exitFullscreen||document.webkitExitFullscreen).call(document);else(FSE.requestFullscreen||FSE.webkitRequestFullscreen).call(FSE)}catch(e){}}
@@ -219,7 +219,7 @@ function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
 const PRE=/^\s*poin\s*[1-5]\s*[\u2014\u2013-]\s*/i;
 /* opsi yang diawali "(Poin N)" / "Poin N" = baris pembahasan yang salah terbaca sebagai opsi */
 const OPT_BAD=/^\s*[\[(]?\s*poin\s*[1-5]\b/i,badQ=x=>Object.values((x&&x.o)||{}).some(v=>OPT_BAD.test(String(v)));
-const pick=c=>{T.a[T.i]=c;paint();clearTimeout(pingTo);pingTo=setTimeout(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a})},800)},go=n=>{T.i=n;T.tab=null;paint()};
+const pick=c=>{T.a[T.i]=c;paint();clearTimeout(pingTo);pingTo=setTimeout(()=>{if(T&&!T.done&&T.s.aid)sb.rpc('ping_exam',{p_aid:T.s.aid,p_ans:T.a}).then(r=>{if(r&&r.error)console.warn('ping_exam',r.error.message)},()=>{})},800)},go=n=>{T.i=n;T.tab=null;paint()};
 async function finish(){if(!T||T.busy||T.done)return;T.busy=true;clearInterval(tick);clearInterval(pinger);clearTimeout(pingTo);
  $('#test').innerHTML='<div class="stage"><div class="qa" style="display:flex;align-items:center;justify-content:center"><h2>Mengirim jawaban...</h2></div></div>';
  const{data:r,error}=await sb.rpc('submit_exam',{p_sid:T.s.id,p_nm:T.nm,p_ans:T.a,p_aid:T.s.aid||null});
