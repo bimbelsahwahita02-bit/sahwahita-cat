@@ -277,6 +277,9 @@ async function admin(){clearInterval(liveT);liveCur=null;A.hidden=false;A.innerH
    ${L.length?`<label>Pilih sesi ujian</label><select id="ls" onchange="liveSel=+this.value;admin()">${L.map(x=>`<option value="${x.id}"${x.id===liveSel?' selected':''}>${esc(x.name)} (${NM[x.type]})</option>`).join('')}</select>
    <label>Link livescore untuk dibagikan ke peserta ${liveCur.live_on?'':'<span class="fail">· link sedang dimatikan</span>'}</label>
    <div class="lv-link"><input id="ll" readonly value="${esc(u)}" onclick="this.select()"><button onclick="copyLive()">Salin link</button><button class="s" onclick="window.open($('#ll').value,'_blank')">Buka</button></div>
+   <label>Nama link (bisa diubah sesuai nama Try Out)</label>
+   <div class="lv-link"><input id="lc" value="${esc(liveCur.live_code)}" maxlength="60" autocapitalize="none" spellcheck="false"><button onclick="saveSlug(${liveCur.id})">Simpan nama link</button><button class="s" onclick="autoSlug()">Isi dari nama sesi</button></div>
+   <small style="color:var(--mu)">Contoh: livescoretoskdpart17. Hanya huruf kecil, angka, dan tanda minus (4-60 karakter). Klik "Isi dari nama sesi" lalu "Simpan nama link".</small>
    <div class="lv-act"><button class="s" onclick="togLive(${liveCur.id},${!liveCur.live_on})">${liveCur.live_on?'Matikan link':'Aktifkan link'}</button><button class="s" onclick="newLink(${liveCur.id})">Buat link baru</button><button class="d" onclick="clearLive(${liveCur.id})">Kosongkan livescore sesi ini</button></div>`:'<div class="err">Belum ada sesi ujian. Buat sesi di menu Sesi Ujian dulu.</div>'}</div>
    ${liveCur?`<div class="card" style="overflow:auto"><div style="margin-bottom:10px"><span class="lv-dot"></span><small id="lvt">Memuat...</small></div><div id="lvb">Memuat...</div></div>`:''}`}
  else{const{data:rs}=await sb.from('results').select('*').order('created_at',{ascending:false}).limit(500);
@@ -387,6 +390,13 @@ function copyLive(){const i=$('#ll'),u=i.value;
   const ok=()=>alert('Link livescore disalin. Silakan tempel dan bagikan ke peserta.');
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(ok,()=>{i.select();document.execCommand('copy');ok()});
   else{i.select();document.execCommand('copy');ok()}}
+const slugOf=n=>'livescore'+String(n).toLowerCase().replace(/try\s*out/g,'to').replace(/[^a-z0-9]/g,'');
+function autoSlug(){const i=$('#lc');if(i&&liveCur)i.value=slugOf(liveCur.name)}
+async function saveSlug(id){const c=($('#lc').value||'').trim().toLowerCase();
+  if(!/^[a-z0-9-]{4,60}$/.test(c))return alert('Nama link harus 4-60 karakter: huruf kecil, angka, atau tanda minus (tanpa spasi).');
+  const{error}=await sb.from('sessions').update({live_code:c}).eq('id',id);
+  if(error)return alert(/duplicate|unique/i.test(error.message)?'Nama link itu sudah dipakai sesi lain. Silakan pilih nama lain.':error.message);
+  admin()}
 async function togLive(id,v){const{error}=await sb.from('sessions').update({live_on:v}).eq('id',id);if(error)alert(error.message);admin()}
 async function newLink(id){if(!confirm('Buat link baru? Link lama langsung tidak berlaku.'))return;
   const c=[...crypto.getRandomValues(new Uint8Array(5))].map(b=>b.toString(16).padStart(2,'0')).join('');
