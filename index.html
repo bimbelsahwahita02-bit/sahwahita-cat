@@ -44,7 +44,7 @@ html{-webkit-text-size-adjust:100%}
 .bar b{flex:1 1 11em;min-width:0;font-size:.95em;font-weight:700}
 .tm{font:800 1.5em Poppins;color:var(--g);text-shadow:0 0 12px rgba(255,200,60,.55)}
 .qa{flex:1;min-height:0;overflow:auto;padding:.4em 0;-webkit-overflow-scrolling:touch}
-.qt{font-size:1.1em;font-weight:400;line-height:1.55;margin-bottom:.8em;white-space:pre-wrap}
+.qp,.qo,.qt{font-family:Poppins,Inter,system-ui,sans-serif}.qt{font-size:1.1em;font-weight:400;line-height:1.6;margin-bottom:.8em;white-space:pre-wrap;overflow-wrap:anywhere}.qt .qh{font-weight:700;letter-spacing:.01em;margin-bottom:.7em;padding-bottom:.6em;border-bottom:1px solid var(--ln)}.qt .qr{font-weight:300}
 .op{display:flex;gap:.8em;align-items:center;width:100%;text-align:left;margin:.45em 0;padding:.7em .9em;background:rgba(255,255,255,.08);color:var(--tx);border:1px solid var(--ln);font-weight:300;font-size:1em;line-height:1.4}
 .op{align-items:flex-start}.op i{font:800 normal .9em Poppins;color:var(--tx);flex:none;width:1.9em;height:1.9em;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18)}
 .op.sel{background:rgba(244,255,143,.16);border-color:var(--y);box-shadow:0 0 16px rgba(244,255,143,.75),inset 0 0 8px rgba(244,255,143,.25);color:var(--y)}.op.sel i{background:var(--y);color:#222}
@@ -199,19 +199,20 @@ if(fsOK)$('#fsb').hidden=false;
 const subOf=i=>T.s.type!=='to'?T.s.type:i<30?'twk':i<65?'tiu':'tkp';
 function fitQ(){const a=$('#test .qp'),b=$('#test .qo');if(!a||!b)return;
  if(innerHeight<=520){a.style.fontSize=b.style.fontSize='13px';return}
- const fit=el=>{const ok=()=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
-  let lo=7,hi=innerWidth<=700?15:18;while(lo<hi){const m=Math.ceil((lo+hi)/2);el.style.fontSize=m+'px';ok()?lo=m:hi=m-1}el.style.fontSize=lo+'px'};
- fit(a);fit(b)}
+ const fit=(el,mx)=>{const ok=()=>el.scrollHeight<=el.clientHeight+1&&el.scrollWidth<=el.clientWidth+1;
+  let lo=7,hi=mx||(innerWidth<=700?15:18);while(lo<hi){const m=Math.ceil((lo+hi)/2);el.style.fontSize=m+'px';ok()?lo=m:hi=m-1}el.style.fontSize=lo+'px'};
+ fit(a,innerWidth<=700?15:22);fit(b)}
 document.fonts&&document.fonts.addEventListener&&document.fonts.addEventListener('loadingdone',()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
 addEventListener('orientationchange',()=>setTimeout(()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()},250));
 addEventListener('resize',()=>{if(T&&!T.done&&!$('#test').hidden)fitQ()});
+function stemHtml(s){s=String(s??'');const n=s.indexOf('\n');if(n>0){const h=s.slice(0,n).trim(),r=s.slice(n+1).replace(/^\s+/,'');if(h.length<=100&&/\s:\s.+=.+\s:\s/.test(h)&&r&&!/\[\[(img|tbl):/.test(h))return'<div class="qh">'+esc(h)+'</div><div class="qr">'+rich(r)+'</div>'}return rich(s)}
 function paint(){paint0();fitQ();requestAnimationFrame(fitQ);setTimeout(fitQ,200);setTimeout(fitQ,800)}
 function paint0(){const{qs,i,a,s}=T,q=qs[i],L='ABCDE';
  const groups=s.type==='to'?[['TWK',0,30],['TIU',30,65],['TKP',65,110]]:[[NM[s.type],0,qs.length]];
  const gi=n=>Math.max(0,groups.findIndex(g=>n>=g[1]&&n<g[2]));if(T.tab==null)T.tab=gi(i);
  const cnt=g=>{let c=0;for(let n=g[1];n<Math.min(g[2],qs.length);n++)if(a[n])c++;return c+'/'+(Math.min(g[2],qs.length)-g[1])};
  $('#test').innerHTML=`<div class="stage"><div class="bar"><img src="${BANNER}" alt=""><b>${esc(T.nm)} · ${esc(s.name)}</b><span class="lb">SOAL ${i+1} / ${qs.length} · ${NM[subOf(i)]}</span><span class="tm" id="tm">${fmt(T.end-Date.now())}</span>${fsOK?`<button class="fs" onclick="toggleFS()" title="Layar penuh / keluar layar penuh"><svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`:''}</div>
- <div class="qa2"><div class="qp"><div class="qt">${rich(q.q)}</div></div>
+ <div class="qa2"><div class="qp"><div class="qt">${stemHtml(q.q)}</div></div>
  <div class="qo">${L.split('').filter(c=>q.o[c]!=null).map(c=>`<button class="op ${a[i]===c?'sel':''}" onclick="pick('${c}')"><i>${c}</i><span>${rich(String(q.o[c]).replace(PRE,''))}</span></button>`).join('')}</div></div>
  <div class="ft"><button class="bk" onclick="go(${i-1})" ${i?'':'disabled'}>Back</button><button onclick="go(${i+1})" ${i<qs.length-1?'':'disabled'}>Next</button><button class="alt" onclick="if(confirm('Selesaikan ujian sekarang?'))finish()">Selesai</button></div>
  ${groups.length>1?`<div class="tabs2">${groups.map((g,k)=>`<button class="${k===T.tab?'on':''}" onclick="T.tab=${k};paint()">${g[0]} ${cnt(g)}</button>`).join('')}</div>`:''}
